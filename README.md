@@ -2,8 +2,21 @@
 Copernicus API makes searching and downloading of Copernicus Sentinel mission images from
 [Copernicus Data Space Ecosystem (CDSE)](https://dataspace.copernicus.eu/) easy.
 
-Usage
-=====
+## Installation Guide
+1. Clone the repository
+
+    ```
+    git clone git@github.com:armkhudinyan/copernicus_api.git
+    cd copernicus_api
+    ```
+
+2. Install the side packages in the currently active python env, using conda:
+
+    ```
+    conda env update -f environment.yml
+    ```
+
+## Usage
 
 It offers a easy to use Python API.
 
