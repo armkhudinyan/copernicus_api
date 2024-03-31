@@ -18,7 +18,7 @@ Copernicus API makes searching and downloading of Copernicus Sentinel mission im
 
 ## Usage
 
-It offers a easy to use Python API.
+It offers an easy to use Python API.
 
 ```python
 from src.copernicus_api import Sentinel1API
