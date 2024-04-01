@@ -1,12 +1,8 @@
-import logging
 import geopandas as gpd
 from pathlib import Path
 from shapely.wkt import loads
 
 from src.exceptions import WKTError
-
-
-log = logging.getLogger()
 
 
 def is_wkt(text: str) -> bool:
