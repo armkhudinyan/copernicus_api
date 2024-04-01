@@ -98,6 +98,10 @@ class CopernicusDataspaceAPI(ABC):
             `prod_types` attribute of instantiated CopernicusDataspaceAPI class.
         wkt : str, optional
             Well-known text representation of the spatial geometry
+            NOTE:
+            1. MULTIPOLYGON is currently not supported.
+            2. Polygon must start and end with the same point.
+            3. Coordinates must be given in EPSG 4326
         orderby : str, optional
             Sort order by acquizition time. Can be 'asc' or 'desc'.
         limit : int, optional
