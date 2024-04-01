@@ -2,6 +2,13 @@
 Copernicus API makes searching and downloading of Copernicus Sentinel mission images from
 [Copernicus Data Space Ecosystem (CDSE)](https://dataspace.copernicus.eu/) easy.
 
+Current supported missions:
+  - SENTINEL-1
+  - SENTINEL-2
+  - SENTINEL-3
+  - SENTINEL-5P
+  - SENTINEL-6
+
 ## Installation Guide
 1. Clone the repository
 
@@ -18,16 +25,17 @@ Copernicus API makes searching and downloading of Copernicus Sentinel mission im
 
 ## Usage
 
-It offers an easy to use Python API.
+It offers an easy-to-use Python API.
+Example for Sentinel-1 query and download:
 
 ```python
 from src.copernicus_api import Sentinel1API
-from src.utils import to_openeo_wkt
+from src.utils import to_odata_wkt
 
-api = SentinelAPI('user', 'password')
+api = Sentinel1API('user', 'password')
 
-footprint = to_openeo_wkt('path/to/search_polygon.geojson')
-prod_specific_filters = {
+footprint = to_odata_wkt('path/to/search_polygon.geojson')
+specific_attrs = {
   'relativeOrbitNumber': [52, 118, 145],
   'sliceNumber': [7, 18],
   'orbitDirection': ['ASCENDING']
@@ -41,7 +49,34 @@ products = api.query(
   wkt=footprint,
   orderby='desc',
   limit=20,
-  **prod_specific_filters
+  **specific_attrs
+  )
+  api.download_all(products, out_dir='path/to/out_dir')
+  ```
+
+Example for Sentinel-2 query and download:
+
+```python
+from src.copernicus_api import Sentinel2API
+from src.utils import to_odata_wkt
+
+api = Sentinel2API('user', 'password')
+
+footprint = to_odata_wkt('path/to/search_polygon.geojson')
+specific_attrs = {
+    'cloudCover' : [0, 30],
+    'tileId' : ['29SNB', '29TLE', '29TLE']
+}
+
+products = api.query(
+  start_time = '2024-03-18',
+  end_time='2024-03-30',
+  prod_type='GRD',
+  exclude='COG',
+  wkt=footprint,
+  orderby='desc',
+  limit=20,
+  **specific_attrs
   )
   api.download_all(products, out_dir='path/to/out_dir')
   ```
