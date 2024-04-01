@@ -43,5 +43,5 @@ products = api.query(
   limit=20,
   **prod_specific_filters
   )
-  api.download_all(products)
+  api.download_all(products, out_dir='path/to/out_dir')
   ```

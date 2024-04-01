@@ -1,10 +1,15 @@
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import cpu_count
 from abc import ABC, abstractmethod
 from pathlib import Path
+from tqdm import tqdm
 import pandas as pd
 import requests
 
 from exceptions import AttributeNotFoundError
 
+CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
+TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 
 class CopernicusDataspaceAPI(ABC):
     """Class to connect to Datascpace Copernicus, search and download imagery.
@@ -52,10 +57,7 @@ class CopernicusDataspaceAPI(ABC):
             "grant_type": "password",
         }
         try:
-            r = requests.post(
-                "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
-                data=data,
-            )
+            r = requests.post(TOKEN_URL, data=data)
             r.raise_for_status()
         except Exception as e:
             raise Exception(
@@ -115,7 +117,7 @@ class CopernicusDataspaceAPI(ABC):
             DataFrame containing the resulting products of the query.
         """
 
-        query_str = f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection/Name eq '{self.mission}'" + \
+        query_str = f"{CATALOG_URL}/Name eq '{self.mission}'" + \
             f" and ContentDate/Start gt {start_time}T00:00:00.000Z" + \
             f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
         if prod_type:
@@ -146,7 +148,8 @@ class CopernicusDataspaceAPI(ABC):
         products = products.apply(self.__add_attrs_to_df, axis=1)
         # Apply product specific attribute filter
         if kwargs:
-            products = filter_by_attributes(products, **kwargs)
+            products = filter_by_attributes(products, **kwargs
+                                            ).reset_index(drop=True)
         return products
 
     def download_by_id(self, prod_id: str, out_path: Path) -> None:
@@ -164,8 +167,37 @@ class CopernicusDataspaceAPI(ABC):
                 if chunk:
                     file.write(chunk)
 
-    def download_all(self, products: pd.DataFrame, out_path: Path):
-        return NotImplementedError("This function has not been implemented yet")
+    def download_all(self,
+                     products: pd.DataFrame,
+                     out_dir: Path,
+                     threads: int=0,
+                     show_progress: bool=True
+                     ) -> None:
+        """Download all products in parallel using multithreading."""
+        if show_progress:
+            pbar = tqdm(total=len(products), unit="files")
+
+        # Generate tupe of Ids and Names for each product
+        prod_ids = [(prod.Id, prod.Name) for _, prod in products.iterrows()]
+
+        def download_worker(prod_id: str, prod_name: str) -> None:
+            out_file = out_dir / f"{prod_name}"
+            try:
+                self.download_by_id(prod_id, out_path=out_file)
+            except Exception as e:
+                raise Exception(f"'{e.__class__.__name__}': Failed to download "
+                                f"{prod_name}: {e}")
+            finally:
+                if show_progress:
+                    pbar.update(1)
+
+        threads_ = threads if threads else min(cpu_count() - 2, len(products))
+        with ThreadPoolExecutor(threads_) as executor:
+            for prod_id, prod_name in prod_ids:
+                executor.submit(download_worker, prod_id, prod_name)
+
+        if show_progress:
+            pbar.close()
 
 
 class Sentinel1API(CopernicusDataspaceAPI):
