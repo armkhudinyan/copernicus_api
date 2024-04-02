@@ -42,8 +42,8 @@ specific_attrs = {
   }
 
 products = api.query(
-  start_time = '2024-03-18',
-  end_time='2024-03-30',
+  start_time = '2024-01-01',
+  end_time='2024-01-15',
   prod_type='GRD',
   exclude='COG',
   wkt=footprint,
@@ -69,12 +69,10 @@ specific_attrs = {
 }
 
 products = api.query(
-  start_time = '2024-03-18',
-  end_time='2024-03-30',
-  prod_type='GRD',
-  exclude='COG',
+  start_time = '2024-01-01',
+  end_time='2024-01-15',
+  prod_type='L1C',
   wkt=footprint,
-  orderby='desc',
   limit=20,
   **specific_attrs
   )
