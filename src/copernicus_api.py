@@ -8,6 +8,7 @@ import requests
 
 from exceptions import AttributeNotFoundError
 
+
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 DOWNLOAD_URL = "https://zipper.dataspace.copernicus.eu/odata/v1/Products"
@@ -157,6 +158,9 @@ class CopernicusDataspaceAPI(ABC):
         ) -> str:
         """Builds the API product request string based on given properties and
         constraints.
+
+        Returns: str
+            API product request string
         """
 
         query_str = f"{CATALOG_URL}/Name eq '{self.mission}'" + \
@@ -179,13 +183,20 @@ class CopernicusDataspaceAPI(ABC):
         query_str += f"&$expand=Attributes"
         return query_str
 
-    def download_by_id(self, prod_id: str, out_path: Path) -> None:
-        """Download single products by Id."""
+    def download_by_id(self, uid: str, out_path: Path) -> None:
+        """Download single products by UIDs.
+
+        Parameters:
+        uid : str
+            UID of the product to be downloaded
+        out_path : Path
+            Output file path for downloaded product
+        """
 
         access_token = self._get_access_token()
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        url = f"{DOWNLOAD_URL}({prod_id})/$value"
+        url = f"{DOWNLOAD_URL}({uid})/$value"
 
         session = requests.Session()
         session.headers.update(headers)
@@ -203,11 +214,23 @@ class CopernicusDataspaceAPI(ABC):
             threads: int=0,
             show_progress: bool=True
         ) -> None:
-        """Download all products in parallel using multithreading."""
+        """Download all products in parallel using multithreading.
+
+        Parameters:
+        products : DataFrame
+            Pandas Dataframe containing UIDs of the products to be downloaded
+        out_dir : Path
+            Output directory path for downloaded products
+        threads : int
+            Number of simultaneous downloads
+        show_progress : bool
+            Show download progress bar
+        """
+
         if show_progress:
             pbar = tqdm(total=len(products), unit="files")
 
-        # Generate tupe of Ids and Names for each product
+        # Generate tupe of UIds and Names for each product
         prod_ids = [(prod.Id, prod.Name) for _, prod in products.iterrows()]
 
         def download_worker(prod_id: str, prod_name: str) -> None:
