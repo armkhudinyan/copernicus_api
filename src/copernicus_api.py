@@ -10,6 +10,8 @@ from exceptions import AttributeNotFoundError
 
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+DOWNLOAD_URL = "https://zipper.dataspace.copernicus.eu/odata/v1/Products"
+
 
 class CopernicusDataspaceAPI(ABC):
     """Class to connect to Datascpace Copernicus, search and download imagery.
@@ -81,11 +83,11 @@ class CopernicusDataspaceAPI(ABC):
             end_time: str,
             prod_type: str | None = None,
             exclude: str | None = None,
-            wkt: str | None = None,
+            footprint: str | None = None,
             orderby: str | None = None,
             limit: int | None = None,
             **kwargs: list[int] | list[float] | list[str]
-            ) -> pd.DataFrame:
+        ) -> pd.DataFrame:
         """
         Query Copernicus DataSpace API for products matching specified criteria.
 
@@ -98,8 +100,8 @@ class CopernicusDataspaceAPI(ABC):
             Keyword for product type match in the prod name. Must be one of the
             supported product types. To check the available options call
             `prod_types` attribute of instantiated CopernicusDataspaceAPI class.
-        wkt : str, optional
-            Well-known text representation of the spatial geometry
+        footprint : str, optional
+            Well-Known Text representation of the spatial geometry
             NOTE:
             1. MULTIPOLYGON is currently not supported.
             2. Polygon must start and end with the same point.
@@ -117,24 +119,15 @@ class CopernicusDataspaceAPI(ABC):
             DataFrame containing the resulting products of the query.
         """
 
-        query_str = f"{CATALOG_URL}/Name eq '{self.mission}'" + \
-            f" and ContentDate/Start gt {start_time}T00:00:00.000Z" + \
-            f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
-        if prod_type:
-            if prod_type in self.prod_types:
-                query_str += f" and contains(Name, '{prod_type}')"
-            else:
-                raise ValueError(f"Product type not found. Must be one from " +
-                                 f"the list: {self.prod_types}")
-        if exclude:
-            query_str += f" and not contains(Name,'{exclude}')"
-        if wkt:
-            query_str += f" and OData.CSC.Intersects(area=geography'SRID=4326;{wkt}')"
-        if orderby:
-            query_str += f"&$orderby=ContentDate/Start {orderby}"
-        if limit:
-            query_str += f"&$top={limit}"
-        query_str += f"&$expand=Attributes"
+        # Building query string
+        query_str = self._build_query(
+            start_time=start_time,
+            end_time=end_time,
+            prod_type=prod_type,
+            exclude=exclude,
+            footprint=footprint,
+            orderby=orderby,
+            limit=limit)
 
         # Send query
         try:
@@ -152,11 +145,47 @@ class CopernicusDataspaceAPI(ABC):
                                             ).reset_index(drop=True)
         return products
 
+    def _build_query(
+            self,
+            start_time: str,
+            end_time: str,
+            prod_type: str | None = None,
+            exclude: str | None = None,
+            footprint: str | None = None,
+            orderby: str | None = None,
+            limit: int | None = None
+        ) -> str:
+        """Builds the API product request string based on given properties and
+        constraints.
+        """
+
+        query_str = f"{CATALOG_URL}/Name eq '{self.mission}'" + \
+            f" and ContentDate/Start gt {start_time}T00:00:00.000Z" + \
+            f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
+        if prod_type:
+            if prod_type in self.prod_types:
+                query_str += f" and contains(Name, '{prod_type}')"
+            else:
+                raise ValueError(f"Product type not found. Must be one from " +
+                                 f"the list: {self.prod_types}")
+        if exclude:
+            query_str += f" and not contains(Name,'{exclude}')"
+        if footprint:
+            query_str += f" and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}')"
+        if orderby:
+            query_str += f"&$orderby=ContentDate/Start {orderby}"
+        if limit:
+            query_str += f"&$top={limit}"
+        query_str += f"&$expand=Attributes"
+        return query_str
+
     def download_by_id(self, prod_id: str, out_path: Path) -> None:
+        """Download single products by Id."""
+
         access_token = self._get_access_token()
         headers = {"Authorization": f"Bearer {access_token}"}
 
-        url = f"https://zipper.dataspace.copernicus.eu/odata/v1/Products({prod_id})/$value"
+        url = f"{DOWNLOAD_URL}({prod_id})/$value"
 
         session = requests.Session()
         session.headers.update(headers)
@@ -167,12 +196,13 @@ class CopernicusDataspaceAPI(ABC):
                 if chunk:
                     file.write(chunk)
 
-    def download_all(self,
-                     products: pd.DataFrame,
-                     out_dir: Path,
-                     threads: int=0,
-                     show_progress: bool=True
-                     ) -> None:
+    def download_all(
+            self,
+            products: pd.DataFrame,
+            out_dir: Path,
+            threads: int=0,
+            show_progress: bool=True
+        ) -> None:
         """Download all products in parallel using multithreading."""
         if show_progress:
             pbar = tqdm(total=len(products), unit="files")
