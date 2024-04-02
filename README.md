@@ -26,6 +26,7 @@ Current supported missions:
 ## Usage
 
 It offers an easy-to-use Python API.
+
 Example for Sentinel-1 query and download:
 
 ```python
