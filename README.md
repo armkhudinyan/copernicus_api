@@ -23,6 +23,11 @@ Current supported missions:
     conda env update -f environment.yml
     ```
 
+3. Run a test
+    ```
+    pytest test/test_download.py
+    ```
+
 ## Usage
 
 It offers an easy-to-use Python API.
