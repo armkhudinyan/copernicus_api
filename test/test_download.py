@@ -1,4 +1,3 @@
-import pytest
 import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
@@ -9,56 +8,41 @@ from pathlib import Path
 from src.copernicus_api import Sentinel1API
 
 
-@pytest.fixture
-def password():
-    """Returns password if it exists as env variable otherwise raise error"""
-    passw = environ.get("OPENEO_PASS")
-    if passw:
-        return passw
-    raise ValueError("Set environment variable 'OPENEO_PASS'")
-
-
-@pytest.fixture
-def username():
-    """Returns username if it exists as env variable otherwise raise error"""
-    user = environ.get("OPENEO_USER")
-    if user:
-        return user
-    raise ValueError("Set environment variable 'OPENEO_USER'")
-
-
-@pytest.fixture
-def api_instance(username, password):
-    # Initialize your API instance with retrieved credentials
-    return Sentinel1API(username=username, password=password)
-
-
-@pytest.fixture
-def products(api_instance):
-    # Perform a query with some parameters
-    start_time = "2023-01-01"
-    end_time = "2023-01-15"
-    products = api_instance.query(start_time=start_time,
-                                  end_time=end_time,
-                                  prod_type='GRDM' # To avoid very large files
-                                )
-    return products
-
-
 class TestDownload:
 
-    def test_query(self, products):
+    username = environ.get("OPENEO_USER")
+    password = environ.get("OPENEO_PASS")
+
+    def api_instance(self):
+        # Initialize the API instance
+        assert self.username
+        assert self.password
+        return Sentinel1API(username=self.username, password=self.password)
+
+    def products(self):
+        # Perform a query with some parameters
+        start_time = "2023-01-01"
+        end_time = "2023-01-15"
+        api = self.api_instance()
+        products = api.query(start_time=start_time,
+                             end_time=end_time,
+                             prod_type='GRDM' # To avoid very large files
+                            )
+        return products
+
+    def test_query(self):
+        products = self.products()
         # Ensure that the result is a DataFrame
         assert isinstance(products, pd.DataFrame)
 
-    def test_download_all(self, api_instance, products):
-        # Mock output directory
-        tmp_dir = tempfile.TemporaryDirectory()
+    def test_download_all(self):
+        # download test files in temporary output directory
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Query the products
+            products = self.products()
+            # Perform download for just 2 samples
+            self.api_instance().download_all(products[:2], Path(tmp_dir))
 
-        # Perform download for just 2 samples
-        api_instance.download_all(products[:2], Path(tmp_dir.name))
-
-        # Add assertions to check if the files are downloaded properly
-        assert (Path(tmp_dir.name) / f"{products.iloc[0]['Name']}.zip").exists()
-        assert (Path(tmp_dir.name) / f"{products.iloc[1]['Name']}.zip").exists()
-        tmp_dir.cleanup()
+            # Add assertions to check if the files are downloaded properly
+            assert (Path(tmp_dir) / f"{products.iloc[0]['Name']}.zip").exists()
+            assert (Path(tmp_dir) / f"{products.iloc[1]['Name']}.zip").exists()
