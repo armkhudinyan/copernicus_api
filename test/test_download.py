@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
+import tempfile
 from os import environ
 from pathlib import Path
 
@@ -52,11 +53,12 @@ class TestDownload:
 
     def test_download_all(self, api_instance, products):
         # Mock output directory
-        out_dir = Path(__file__).parent.parent / 'data/test_outfiles'
+        tmp_dir = tempfile.TemporaryDirectory()
 
         # Perform download for just 2 samples
-        api_instance.download_all(products[:2], out_dir)
+        api_instance.download_all(products[:2], Path(tmp_dir.name))
 
         # Add assertions to check if the files are downloaded properly
-        assert (out_dir / f"{products.iloc[0]['Name']}.zip").exists()
-        assert (out_dir / f"{products.iloc[1]['Name']}.zip").exists()
+        assert (Path(tmp_dir.name) / f"{products.iloc[0]['Name']}.zip").exists()
+        assert (Path(tmp_dir.name) / f"{products.iloc[1]['Name']}.zip").exists()
+        tmp_dir.cleanup()
