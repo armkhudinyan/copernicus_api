@@ -1,4 +1,6 @@
 fire
+pytest
 pandas
 shapely
 geopandas
+python-dotenv

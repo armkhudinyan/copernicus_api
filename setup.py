@@ -10,7 +10,7 @@ LICENSE = "MIT"
 CLASSIFIERS = [
     "Intended Audience :: Research/EO applications",
     "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3.*",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "Operating System :: Unix",
@@ -31,11 +31,5 @@ setup(
         Path(__file__).parent / "README.md").read_text(encoding="utf8"),
     long_description_content_type="text/markdown",
     url=URL,
-
-#     entry_points={
-#         'console_scripts': [
-#             # console scripts here
-#         ],
-#     },
     classifiers=CLASSIFIERS
 )

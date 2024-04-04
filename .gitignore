@@ -10,3 +10,8 @@
 
 # Local History for Visual Studio Code
 .history/
+.vscode/launch.json
+# Ignore all pycache
+**/__pycache__/
+.env
+.*
