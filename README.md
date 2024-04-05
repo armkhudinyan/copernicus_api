@@ -36,11 +36,11 @@ Example for Sentinel-1 query and download:
 
 ```python
 from src.copernicus_api import Sentinel1API
-from src.utils import to_odata_wkt
+from src.utils import to_openeo_wkt
 
 api = Sentinel1API('user', 'password')
 
-footprint = to_odata_wkt('path/to/search_polygon.geojson')
+footprint = to_openeo_wkt('path/to/search_polygon.geojson')
 specific_attrs = {
   'relativeOrbitNumber': [52, 118, 145],
   'sliceNumber': [7, 18],
@@ -64,11 +64,11 @@ Example for Sentinel-2 query and download:
 
 ```python
 from src.copernicus_api import Sentinel2API
-from src.utils import to_odata_wkt
+from src.utils import to_openeo_wkt
 
 api = Sentinel2API('user', 'password')
 
-footprint = to_odata_wkt('path/to/search_polygon.geojson')
+footprint = to_openeo_wkt('path/to/search_polygon.geojson')
 specific_attrs = {
     'cloudCover' : [0, 30],
     'tileId' : ['29SNB', '29TLE', '29TLE']
