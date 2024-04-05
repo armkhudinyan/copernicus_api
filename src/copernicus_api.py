@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import requests
 
-from exceptions import AttributeNotFoundError
+from src.exceptions import AttributeNotFoundError
 
 
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
@@ -211,7 +211,7 @@ class CopernicusDataspaceAPI(ABC):
             self,
             products: pd.DataFrame,
             out_dir: Path,
-            threads: int=0,
+            threads: int=4,
             show_progress: bool=True
         ) -> None:
         """Download all products in parallel using multithreading.
