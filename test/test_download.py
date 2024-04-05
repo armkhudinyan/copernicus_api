@@ -4,8 +4,9 @@ load_dotenv()
 import tempfile
 from os import environ
 from pathlib import Path
+from shapely.wkt import loads
 
-from src.copernicus_api import Sentinel1API
+from src.copernicus_api import Sentinel1API, filter_by_attributes
 from src.geo_utils import to_openeo_wkt
 
 
@@ -13,7 +14,8 @@ class TestDownload:
 
     username = environ.get("OPENEO_USER")
     password = environ.get("OPENEO_PASS")
-    footprint = to_openeo_wkt('POLYGON((40 -20, 40 -15, 30 -15, 30 -20, 40 -20))')
+    footprint = 'POLYGON((40 -20, 40 -15, 30 -15, 30 -20, 40 -20))'
+    filters = {'orbitDirection': ['ASCENDING']}
 
     def api_instance(self):
         # Initialize the API instance
@@ -33,10 +35,29 @@ class TestDownload:
                             )
         return products
 
+    def test_to_wkt(self):
+        # Ensure that the result is WKT format text
+        assert loads(to_openeo_wkt(self.footprint))
+
     def test_query(self):
         products = self.products()
         # Ensure that the result is a DataFrame
         assert isinstance(products, pd.DataFrame)
+
+    def test_filter_by_attributes(self):
+        # Query the products
+        products = self.products()
+
+        # Apply the filters
+        filtered_products = filter_by_attributes(products, **self.filters)
+
+        # Ensure that the result is a DataFrame
+        assert isinstance(filtered_products, pd.DataFrame)
+
+        # Ensure that the filtered products meet the filtering criteria
+        for index, row in filtered_products.iterrows():
+            assert row['orbitDirection'] in ['ASCENDING']
+
 
     def test_download_all(self):
         # download test files in temporary output directory
