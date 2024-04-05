@@ -6,12 +6,14 @@ from os import environ
 from pathlib import Path
 
 from src.copernicus_api import Sentinel1API
+from src.geo_utils import to_openeo_wkt
 
 
 class TestDownload:
 
     username = environ.get("OPENEO_USER")
     password = environ.get("OPENEO_PASS")
+    footprint = to_openeo_wkt('POLYGON((40 -20, 40 -15, 30 -15, 30 -20, 40 -20))')
 
     def api_instance(self):
         # Initialize the API instance
@@ -26,7 +28,8 @@ class TestDownload:
         api = self.api_instance()
         products = api.query(start_time=start_time,
                              end_time=end_time,
-                             prod_type='GRDM' # To avoid very large files
+                             prod_type='GRDM', # To avoid very large files
+                             footprint=self.footprint
                             )
         return products
 
