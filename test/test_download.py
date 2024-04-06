@@ -31,7 +31,7 @@ class TestDownload:
         products = api.query(start_time=start_time,
                              end_time=end_time,
                              prod_type='GRDM', # To avoid very large files
-                             footprint=self.footprint
+                             footprint=to_openeo_wkt(self.footprint)
                             )
         return products
 
