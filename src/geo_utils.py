@@ -2,7 +2,7 @@ import geopandas as gpd
 from pathlib import Path
 from shapely.wkt import loads
 
-from src.exceptions import WKTError
+from .exceptions import WKTError
 
 
 def is_wkt(text: str) -> bool:

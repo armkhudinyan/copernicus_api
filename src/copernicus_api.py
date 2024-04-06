@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import requests
 
-from src.exceptions import AttributeNotFoundError
+from .exceptions import AttributeNotFoundError
 
 
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
