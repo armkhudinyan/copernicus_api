@@ -1,4 +1,5 @@
 fire
+tqdm
 pytest
 pandas
 shapely
