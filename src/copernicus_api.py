@@ -11,7 +11,7 @@ import pandas as pd
 import requests
 
 from .exceptions import (AttributeNotFoundError,
-                         TokenGenerationError,
+                         AuthorizationError,
                          QueryError)
 
 
@@ -69,7 +69,7 @@ class CopernicusDataspaceAPI(ABC):
             r = requests.post(TOKEN_URL, data=data, timeout=100)
             r.raise_for_status()
         except Exception as e:
-            raise TokenGenerationError(
+            raise AuthorizationError(
                     f"Access token creation failed. Error: {e} \n"
                     f"\tMake sure your login credentials are correct for"
                     " https://dataspace.copernicus.eu/")

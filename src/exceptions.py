@@ -18,7 +18,7 @@ class WKTError(Exception):
         super().__init__(self.message)
 
 
-class TokenGenerationError(Exception):
+class AuthorizationError(Exception):
     pass
 
 
