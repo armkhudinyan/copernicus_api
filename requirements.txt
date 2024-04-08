@@ -1,7 +1,7 @@
-fire
 tqdm
 pytest
 pandas
 shapely
+requests
 geopandas
 python-dotenv
