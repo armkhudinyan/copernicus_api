@@ -1,9 +1,9 @@
-import pandas as pd
-from dotenv import load_dotenv
-load_dotenv()
 import tempfile
 from os import environ
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+import pandas as pd
 from shapely.wkt import loads
 
 from src.copernicus_api import Sentinel1API, filter_by_attributes
