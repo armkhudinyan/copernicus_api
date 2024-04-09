@@ -1,4 +1,7 @@
 # copernicus_api
+
+![Tests](https://github.com/armkhudinyan/copernicus_api/actions/workflows/utilities.yml/badge.svg)
+
 Copernicus API makes searching and downloading of Copernicus Sentinel mission images from
 [Copernicus Data Space Ecosystem (CDSE)](https://dataspace.copernicus.eu/) easy.
 
