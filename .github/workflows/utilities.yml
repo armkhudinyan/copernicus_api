@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  OPENEO_USER: ${{ secrets.OPENEO_USER }}
+  OPENEO_PASS: ${{ secrets.OPENEO_PASS }}
+
 jobs:
   build:
 
@@ -25,12 +29,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-    - name: Load credentials
-      env:
-        OPENEO_USER: ${{ secrets.OPENEO_USER }}
-        OPENEO_PASS: ${{ secrets.OPENEO_PASS }}
-      run: echo -e "'ODATA_API_USER'='$ODATA_USER'\n'ODATA_API_PASS'='$ODATA_PASS'" > .env
 
     - name: Run tests
       run: pytest test
