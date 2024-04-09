@@ -1,14 +1,14 @@
 import tempfile
+import pandas as pd
 from os import environ
 from pathlib import Path
-from dotenv import load_dotenv
-load_dotenv()
-import pandas as pd
 from shapely.wkt import loads
+from dotenv import load_dotenv
 
 from src.copernicus_api import Sentinel1API, filter_by_attributes
 from src.geo_utils import to_openeo_wkt
 
+load_dotenv()
 
 class TestDownload:
 

@@ -25,5 +25,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Test with pytest
+      env:
+        OPENEO_USER: ${{ secrets.OPENEO_USER }}
+        OPENEO_PASS: ${{ secrets.OPENEO_PASS }}
+
+    - name: Run tests
       run: pytest test
