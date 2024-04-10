@@ -1,5 +1,6 @@
 """This is an Python API accomodating search and download of Copernicus Sentinel
-mission data products."""
+mission data products from Copernicus Data Space Ecosystem (CDSE):
+https://dataspace.copernicus.eu/."""
 
 
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +13,7 @@ import requests
 
 from .exceptions import (AttributeNotFoundError,
                          AuthorizationError,
+                         DownloadError,
                          QueryError)
 
 
@@ -140,7 +142,7 @@ class CopernicusDataspaceAPI(ABC):
         try:
             json = requests.get(query_str, timeout=100).json()
         except Exception as e:
-            raise QueryError(f"{e.__class__.__name__}: Query failed: {e}")
+            raise QueryError(f"{e.__class__.__name__}: Query failed: {e.args[0]}")
 
         # convert dict into pd.Dataframe
         products = pd.DataFrame.from_dict(json['value'])
@@ -208,10 +210,13 @@ class CopernicusDataspaceAPI(ABC):
         session.headers.update(headers)
         response = session.get(url, headers=headers, stream=True)
 
-        with open(str(out_path) + ".zip", "wb") as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    file.write(chunk)
+        try:
+            with open(str(out_path) + ".zip", "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        file.write(chunk)
+        except Exception as e:
+            raise DownloadError(f"Failed to download {out_path.name}\n{e}")
 
     def download_all(
             self,
@@ -244,8 +249,8 @@ class CopernicusDataspaceAPI(ABC):
             try:
                 self.download_by_id(prod_id, out_path=out_file)
             except Exception as e:
-                raise Exception(f"'{e.__class__.__name__}': Failed to download "
-                                f"{prod_name}: {e}")
+                raise DownloadError(f"'{e.__class__.__name__}': "
+                        f"Failed to download {prod_name}: {e.args[0]}")
             finally:
                 if show_progress:
                     pbar.update(1)

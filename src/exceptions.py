@@ -24,3 +24,7 @@ class AuthorizationError(Exception):
 
 class QueryError(Exception):
     pass
+
+
+class DownloadError(Exception):
+    pass
