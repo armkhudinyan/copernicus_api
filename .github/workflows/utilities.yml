@@ -1,10 +1,10 @@
 name: Tests
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+  push:
+    branches:
+      ֊ "main"
 
 permissions:
   contents: read
