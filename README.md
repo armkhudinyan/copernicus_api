@@ -20,8 +20,11 @@ Current supported missions:
     cd copernicus_api
     ```
 
-2. Install the side packages in the currently active python env, using conda:
-
+2. Install the side packages in the currently active python env, using pip:
+    ```
+    pip install -r requirements.txt
+    ```
+    using conda
     ```
     conda env update -f environment.yml
     ```
