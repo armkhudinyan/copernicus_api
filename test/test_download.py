@@ -59,7 +59,7 @@ class TestDownload:
         assert isinstance(filtered_products, pd.DataFrame)
 
         # Ensure that the filtered products meet the filtering criteria
-        for index, row in filtered_products.iterrows():
+        for _, row in filtered_products.iterrows():
             assert row['orbitDirection'] in ['ASCENDING']
 
 

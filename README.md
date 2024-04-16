@@ -101,4 +101,4 @@ products = api.query(
 
 ## Contributions
 To contribute to the repository, please follow the guidelines in
-[here][contributing]
+[here](CONTRIBUTING.md)
