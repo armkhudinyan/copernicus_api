@@ -8,6 +8,7 @@ from multiprocessing import cpu_count
 from abc import ABC, abstractmethod
 from pathlib import Path
 from tqdm import tqdm
+import logging as log
 import pandas as pd
 import requests
 
@@ -15,6 +16,11 @@ from .exceptions import (AttributeNotFoundError,
                          AuthorizationError,
                          DownloadError,
                          QueryError)
+
+
+log.basicConfig(
+    level = log.INFO,
+    format = "%(levelname)s: %(message)s")
 
 
 CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
@@ -146,6 +152,13 @@ class CopernicusDataspaceAPI(ABC):
 
         # convert dict into pd.Dataframe
         products = pd.DataFrame.from_dict(json['value'])
+
+        # Suggest product types if the query result is empty
+        if products.empty and prod_type:
+            if not any(prod_type in prod for prod in self.prod_types):
+                log.info("No product found. Use product types available " +
+                         f"for {self.mission} mission: {self.prod_types}")
+                return products
         # Extract more Attributes and add as new fields in DataFram
         products = products.apply(self.__add_attrs_to_df, axis=1)
         # Apply product specific attribute filter
@@ -175,11 +188,7 @@ class CopernicusDataspaceAPI(ABC):
             f" and ContentDate/Start gt {start_time}T00:00:00.000Z" + \
             f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
         if prod_type:
-            if prod_type in self.prod_types:
-                query_str += f" and contains(Name, '{prod_type}')"
-            else:
-                raise ValueError("Product type not found. Must be one from " +
-                                 f"the list: {self.prod_types}")
+            query_str += f" and contains(Name, '{prod_type}')"
         if exclude:
             query_str += f" and not contains(Name,'{exclude}')"
         if footprint:
@@ -273,7 +282,7 @@ class Sentinel1API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['RAW', 'SLC', 'GRD', 'GRDH', 'GRDM', 'OCN', 'IW', 'EW']
+        return ['RAW', 'SLC', 'GRD', 'GRDH', 'GRDM', 'OCN', 'IW', 'EW', 'WV']
 
 
 class Sentinel2API(CopernicusDataspaceAPI):

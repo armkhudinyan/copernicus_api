@@ -13,6 +13,7 @@ def is_wkt(text: str) -> bool:
     except Exception:
         return False
 
+
 def to_openeo_wkt(aoi: Path | str | None) -> str | None:
     """Returns WKT coordinates of area extent"""
     if aoi is None:
