@@ -2,28 +2,35 @@
 mission data products from Copernicus Data Space Ecosystem (CDSE):
 https://dataspace.copernicus.eu/."""
 
-
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Literal
 from tqdm import tqdm
 import logging as log
 import pandas as pd
 import requests
 
-from .exceptions import (AttributeNotFoundError,
-                         AuthorizationError,
-                         DownloadError,
-                         QueryError)
+from .exceptions import (
+    AttributeNotFoundError,
+    AuthorizationError,
+    FilterByAttributeError,
+    DownloadError,
+    QueryError,
+)
 
 
 log.basicConfig(
-    level = log.INFO,
-    format = "%(levelname)s: %(message)s")
+    level=log.INFO,
+    # filename = local_config.log_path,
+    format="%(levelname)s: %(message)s",
+)
 
 
-CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
+CATALOG_URL = (
+    "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection"
+)
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 DOWNLOAD_URL = "https://zipper.dataspace.copernicus.eu/odata/v1/Products"
 
@@ -47,10 +54,10 @@ class CopernicusDataspaceAPI(ABC):
     """
 
     def __init__(
-            self,
-            username: str,
-            password: str,
-        ) -> None:
+        self,
+        username: str,
+        password: str,
+    ) -> None:
         self.username = username
         self.password = password
 
@@ -78,31 +85,32 @@ class CopernicusDataspaceAPI(ABC):
             r.raise_for_status()
         except Exception as e:
             raise AuthorizationError(
-                    f"Access token creation failed. Error: {e} \n"
-                    f"\tMake sure your login credentials are correct for"
-                    " https://dataspace.copernicus.eu/")
+                f"Access token creation failed. Error: {e} \n"
+                f"\tMake sure your login credentials are correct for"
+                " https://dataspace.copernicus.eu/"
+            )
         return r.json()["access_token"]
 
     @staticmethod
     def __add_attrs_to_df(product: pd.Series) -> pd.Series:
         "Extracts Sentinel product attributes and add to the DataFrame"
-        attributes = product.get('Attributes', [])
+        attributes = product.get("Attributes", [])
         for attr in attributes:
-            product[attr['Name']] = attr['Value']
+            product[attr["Name"]] = attr["Value"]
         return product
 
     def query(
-            self,
-            *,
-            start_time: str,
-            end_time: str,
-            prod_type: str | None = None,
-            exclude: str | None = None,
-            footprint: str | None = None,
-            orderby: str | None = None,
-            limit: int | None = None,
-            **kwargs: list[int] | list[float] | list[str]
-        ) -> pd.DataFrame:
+        self,
+        *,
+        start_time: str,
+        end_time: str,
+        prod_type: str | None = None,
+        exclude: str | None = None,
+        footprint: str | None = None,
+        orderby: Literal["asc", "desc"] | None = None,
+        limit: int | None = None,
+        **kwargs: list[int] | list[float] | list[str],
+    ) -> pd.DataFrame:
         """
         Query Copernicus DataSpace API for products matching specified criteria.
 
@@ -121,8 +129,8 @@ class CopernicusDataspaceAPI(ABC):
             1. MULTIPOLYGON is currently not supported.
             2. Polygon must start and end with the same point.
             3. Coordinates must be given in EPSG 4326
-        orderby : str, optional
-            Sort order by acquizition time. Can be 'asc' or 'desc'.
+        orderby :  Literal {'asc', 'desc'}, optional
+            Sort order by acquizition time.
         limit : int, optional
             Maximum number of products to return.
         **kwargs : Mapping[str, Union[List[int], List[float], List[str]]]
@@ -142,7 +150,8 @@ class CopernicusDataspaceAPI(ABC):
             exclude=exclude,
             footprint=footprint,
             orderby=orderby,
-            limit=limit)
+            limit=limit,
+        )
 
         # Send query
         try:
@@ -151,32 +160,41 @@ class CopernicusDataspaceAPI(ABC):
             raise QueryError(f"{e.__class__.__name__}: Query failed: {e.args[0]}")
 
         # convert dict into pd.Dataframe
-        products = pd.DataFrame.from_dict(json['value'])
+        products = pd.DataFrame.from_dict(json["value"])
 
         # Suggest product types if the query result is empty
         if products.empty and prod_type:
             if not any(prod_type in prod for prod in self.prod_types):
-                log.info("No product found. Use product types available " +
-                         f"for {self.mission} mission: {self.prod_types}")
+                log.info(
+                    "No product found. Use product types available "
+                    + f"for {self.mission} mission: {self.prod_types}"
+                )
                 return products
         # Extract more Attributes and add as new fields in DataFram
         products = products.apply(self.__add_attrs_to_df, axis=1)
         # Apply product specific attribute filter
         if kwargs:
-            products = filter_by_attributes(products, **kwargs
-                                            ).reset_index(drop=True)
+            try:
+                products = filter_by_attributes(products, **kwargs).reset_index(
+                    drop=True
+                )
+            except Exception as e:
+                raise FilterByAttributeError(
+                    f"{type(e).__name__} occured while filtering query results "
+                    f"by attributes: {e}"
+                )
         return products
 
     def _build_query(
-            self,
-            start_time: str,
-            end_time: str,
-            prod_type: str | None = None,
-            exclude: str | None = None,
-            footprint: str | None = None,
-            orderby: str | None = None,
-            limit: int | None = None
-        ) -> str:
+        self,
+        start_time: str,
+        end_time: str,
+        prod_type: str | None = None,
+        exclude: str | None = None,
+        footprint: str | None = None,
+        orderby: str | None = None,
+        limit: int | None = None,
+    ) -> str:
         """Builds the API product request string based on given properties and
         constraints.
 
@@ -184,15 +202,19 @@ class CopernicusDataspaceAPI(ABC):
             API product request string
         """
 
-        query_str = f"{CATALOG_URL}/Name eq '{self.mission}'" + \
-            f" and ContentDate/Start gt {start_time}T00:00:00.000Z" + \
-            f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
+        query_str = (
+            f"{CATALOG_URL}/Name eq '{self.mission}'"
+            + f" and ContentDate/Start gt {start_time}T00:00:00.000Z"
+            + f" and ContentDate/Start lt {end_time}T00:00:00.000Z"
+        )
         if prod_type:
             query_str += f" and contains(Name, '{prod_type}')"
         if exclude:
             query_str += f" and not contains(Name,'{exclude}')"
         if footprint:
-            query_str += f" and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}')"
+            query_str += (
+                f" and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}')"
+            )
         if orderby:
             query_str += f"&$orderby=ContentDate/Start {orderby}"
         if limit:
@@ -228,24 +250,27 @@ class CopernicusDataspaceAPI(ABC):
             raise DownloadError(f"Failed to download {out_path.name}\n{e}")
 
     def download_all(
-            self,
-            products: pd.DataFrame,
-            out_dir: Path,
-            threads: int=4,
-            show_progress: bool=True
-        ) -> None:
+        self,
+        products: pd.DataFrame,
+        out_dir: Path | str,
+        threads: int = 4,
+        show_progress: bool = True,
+    ) -> None:
         """Download all products in parallel using multithreading.
 
         Parameters:
         products : DataFrame
             Pandas Dataframe containing UIDs of the products to be downloaded
-        out_dir : Path
+        out_dir : Path | str
             Output directory path for downloaded products
         threads : int
             Number of simultaneous downloads
         show_progress : bool
             Show download progress bar
         """
+        # Convert out_dir to Path object if it is a string
+        if isinstance(out_dir, str):
+            out_dir = Path(out_dir)
 
         if show_progress:
             pbar = tqdm(total=len(products), unit="files")
@@ -258,8 +283,10 @@ class CopernicusDataspaceAPI(ABC):
             try:
                 self.download_by_id(prod_id, out_path=out_file)
             except Exception as e:
-                raise DownloadError(f"'{e.__class__.__name__}': "
-                        f"Failed to download {prod_name}: {e.args[0]}")
+                raise DownloadError(
+                    f"'{e.__class__.__name__}': "
+                    f"Failed to download {prod_name}: {e.args[0]}"
+                )
             finally:
                 if show_progress:
                     pbar.update(1)
@@ -282,7 +309,7 @@ class Sentinel1API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['RAW', 'SLC', 'GRD', 'GRDH', 'GRDM', 'OCN', 'IW', 'EW', 'WV']
+        return ["RAW", "SLC", "GRD", "GRDH", "GRDM", "OCN", "IW", "EW"]
 
 
 class Sentinel2API(CopernicusDataspaceAPI):
@@ -294,7 +321,7 @@ class Sentinel2API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['L1C', 'L2A']
+        return ["L1C", "L2A"]
 
 
 class Sentinel3API(CopernicusDataspaceAPI):
@@ -306,7 +333,7 @@ class Sentinel3API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['OL_1', 'OL_2', 'SL_1', 'SL_2', 'SR_1', 'SR_2', 'SR', 'SY_2']
+        return ["OL_1", "OL_2", "SL_1", "SL_2", "SR_1", "SR_2", "SR", "SY_2"]
 
 
 class Sentinel5API(CopernicusDataspaceAPI):
@@ -318,11 +345,30 @@ class Sentinel5API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['L1B_RA_BD1', 'L1B_RA_BD2', 'L1B_RA_BD3', 'L1B_RA_BD4',
-                'L1B_RA_BD5', 'L1B_RA_BD6', 'L1B_RA_BD7', 'L1B_RA_BD8',
-                'L2__AER_AI', 'L2__AER_LH', 'L2__CH4', 'L2__CLOUD', 'L2__CO',
-                'L2__HCHO', 'L2__NO2', 'L2__NP_BD3', 'L2__NP_BD6', 'L2__NP_BD7',
-                'L2__O3_TCL', 'L2__O3__PR', 'L2__O3', 'L2__SO2']
+        return [
+            "L1B_RA_BD1",
+            "L1B_RA_BD2",
+            "L1B_RA_BD3",
+            "L1B_RA_BD4",
+            "L1B_RA_BD5",
+            "L1B_RA_BD6",
+            "L1B_RA_BD7",
+            "L1B_RA_BD8",
+            "L2__AER_AI",
+            "L2__AER_LH",
+            "L2__CH4",
+            "L2__CLOUD",
+            "L2__CO",
+            "L2__HCHO",
+            "L2__NO2",
+            "L2__NP_BD3",
+            "L2__NP_BD6",
+            "L2__NP_BD7",
+            "L2__O3_TCL",
+            "L2__O3__PR",
+            "L2__O3",
+            "L2__SO2",
+        ]
 
 
 class Sentinel6API(CopernicusDataspaceAPI):
@@ -334,14 +380,12 @@ class Sentinel6API(CopernicusDataspaceAPI):
 
     @property
     def prod_types(self) -> list[str]:
-        return ['MW_2__AMR', 'P4_1B_LR', 'P4_2__LR']
+        return ["MW_2__AMR", "P4_1B_LR", "P4_2__LR"]
 
 
 def filter_by_cloud_cover(
-        prod_df: pd.DataFrame,
-        min_cover: float=0,
-        max_cover: float=100
-        ) -> pd.DataFrame:
+    prod_df: pd.DataFrame, min_cover: float = 0, max_cover: float = 100
+) -> pd.DataFrame:
     """Filter products by cloud cover range.
 
     Parameters:
@@ -358,18 +402,15 @@ def filter_by_cloud_cover(
     """
     try:
         return prod_df[
-                (prod_df['cloudCover'] >= min_cover) &
-                (prod_df['cloudCover'] <= max_cover)
-            ]
+            (prod_df["cloudCover"] >= min_cover) & (prod_df["cloudCover"] <= max_cover)
+        ]
     except KeyError as e:
         raise AttributeNotFoundError(e)
 
 
 def _filter_by_attrs(
-        prod_df: pd.DataFrame,
-        attribute: str,
-        values: list[float | str]
-        ) -> pd.DataFrame:
+    prod_df: pd.DataFrame, attribute: str, values: list[float | str]
+) -> pd.DataFrame:
     """Filter products by a specific attribute and its values.
 
     Parameters:
@@ -404,13 +445,15 @@ def filter_by_attributes(prod_df: pd.DataFrame, **kwargs) -> pd.DataFrame:
         Filtered DataFrame containing the resulting products.
     """
     for key, val in kwargs.items():
-        if key == 'cloudCover':
+        if key == "cloudCover":
             try:
                 assert len(val) == 2
                 prod_df = filter_by_cloud_cover(prod_df, val[0], val[1])
             except AssertionError:
-                raise ValueError(f"Values for 'cloudCover' must be a list of "
-                                 f"2 elements [min, max], {val} was given")
+                raise ValueError(
+                    f"Values for 'cloudCover' must be a list of "
+                    f"2 elements [min, max], {val} was given"
+                )
         else:
             prod_df = _filter_by_attrs(prod_df, key, val)
     return prod_df
