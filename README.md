@@ -66,7 +66,7 @@ products = api.query(
   end_time='2024-01-15',
   prod_type='GRD',
   exclude='COG',
-  wkt=footprint,
+  footprint=footprint,
   orderby='desc',
   limit=20,
   **specific_attrs
@@ -92,7 +92,7 @@ products = api.query(
   start_time = '2024-01-01',
   end_time='2024-01-15',
   prod_type='L1C',
-  wkt=footprint,
+  footprint=footprint,
   limit=20,
   **specific_attrs
   )
